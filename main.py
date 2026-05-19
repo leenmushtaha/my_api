@@ -23,11 +23,6 @@ from typing import List, Optional
 import numpy as np
 import joblib
 import uvicorn
-import os
-import json
-from datetime import datetime, timezone
-import firebase_admin
-from firebase_admin import credentials, firestore
 
 
 # =============================================================================
@@ -133,46 +128,6 @@ except FileNotFoundError:
     print("❌ Model file not found — make sure spiral_model.pkl is present")
     model = None
 
-# =============================================================================
-# FIREBASE SETUP
-# =============================================================================
-
-firebase_db = None
-
-try:
-    firebase_json = os.getenv({
-  "type": "service_account",
-  "project_id": "therapy-dashboard-f4ca9",
-  "private_key_id": "28af4b10d23495ab9050e1833e6365e30ead86f0",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC9Xt+AuwpTYmsK\nZfiWYgbvjxbOzKxk6qFPqS8L/HmFZbl82yi71EjPjw7EnnyPvjAkcBv5Jaj9bqD1\nSpbeSzc/jNgI65ZF96aU4Ss5gMWEYt5C1F8DLMap+EzxdvgIINtGs1RPi/qLnyK9\nRWP/ho91gv5hPbRd6GCWQqKhw1RKYEhN1UxDw9srA7zxYLIdIi6IIS+40goBp9CT\nFUpbUudPuYFFvoxhAaZy7s5KeDf+HWesZ3pABe1mdyYJb0KDm73MhBjYDMHSDU3s\nsYrQVQExPcidfZz595MxXNHOWlnVjHNhqWZMzoVygEKMmEz5c5fD1RT1JjtvlwlQ\ndxUh4GlbAgMBAAECggEABkvlw0XHGZ1h5+PRqKgdUjVgH2hMDtYWDJDPT93t1weR\nEGA19pX7TqQBIzN71hG0BoNG52cMzZtEkKo2Kvq1+MbAurTqCbY9E30vuBk/E3KU\nsJcp05T76J1NtH5/z78XW2MWoqLApfX0GhrUef8zKqMqBflDeDuWQyHlWkiS29Xj\nKY6v74wkTNGiltbx0DjOb4qWmJvVkhurhnKxsaCkKTttS+MOXuTyUZrwuTSprdeo\npK2xBhXkG9EEDvaecNPTJV7tU2Ka0yjWTpU4BTrYBFYLWZqSysluVG5qXj9cGrZJ\nBPHHBCoSBeR6qcXsd86IjM7uq0DKngmrU5cj6gprkQKBgQDw2pYiiY3bPNcnTEe0\nmt4WkWUriuzZUCyssABAkdwgIoRlKCMQVq3qBjJQljUChnU64NDk5LfRHcyhEysP\nJdhhiVPSFmq/hJATr2dqQn/JekEIE+Jsqw07qLGZXGn5DXZlf1izlRRH4xs6CgZe\nzLPWOGbmh/bhrh/eeMdby7bTkQKBgQDJR3o7UEi7ENjdYw+Qvl5mNz7fz/52DlJX\nfUi65wnMDNblGPnM0qmW++6oqxh3tZ0gAklodousSp11yL8sPWH0bZLt3Kc+7O8j\nTEpiMKtfq7xIi+5nHwyVF+qxOu5UxfWTuhfosLxO1ZBz6r+4P79NjO8+3EjvTeFx\n8EK8AkzgKwKBgQDNN3H0u39C7fPkZ/owyEOytu+cyiJEhyuJd+y/F4iXWNG13x0B\nLtnALMdyIonIPQhlwmg6nyZ/5wQTumFV5skXUgs5ViBeTnT0UN+sijyXTrNaTpb+\nQEBmNLYeFb+1lOLsWDUbzkoZdkgci64h2Aji3evPQMn6QIKm7AHxFQISAQKBgQCs\n+xvmS8ol0oW+RftDlwfD6ujDKpry1L4ZaJeP4S0/Sy2IOJ2+VLHhC2UBWgGuJ8wA\njVaPS4ogKQQIDN2XZK2BhoYGnGKzpqaifFdU6aTulMY8xt29jCahH6vYYuAexP6X\n1g/kL7e2PL5nkLDx5P9A48VdDa4004bUB/siXwu4fwKBgQCt5d3d7TVbtJuIfxLa\nPMiPZUOaFugl9j6rYVhOa8JiTVeDwtiWnhczzN+GccVH1C8d3AVnsQKkR++0L/v9\nAV2gZLAJc4+w5XsZsggaK4KOg75P6iYVL4ST33En4BlKi37tqZjEJlBo5/EUQAa+\n3t1JgpCzbRP18+D5o+4c5horuw==\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-fbsvc@therapy-dashboard-f4ca9.iam.gserviceaccount.com",
-  "client_id": "101528367506146010849",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40therapy-dashboard-f4ca9.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-}
-)
-    firebase_project_id = os.getenv("therapy-dashboard-f4ca9")
-
-    if firebase_json:
-        firebase_credentials_dict = json.loads(firebase_json)
-        cred = credentials.Certificate(firebase_credentials_dict)
-
-        if not firebase_admin._apps:
-            firebase_admin.initialize_app(cred, {
-                "projectId": firebase_project_id
-            })
-
-        firebase_db = firestore.client()
-        print("✅ Firebase connected successfully")
-    else:
-        print("⚠️ FIREBASE_SERVICE_ACCOUNT_JSON not found. Firebase saving disabled.")
-
-except Exception as e:
-    print(f"❌ Firebase initialization failed: {e}")
-    firebase_db = None
 
 # =============================================================================
 # REQUEST AND RESPONSE MODELS
@@ -211,7 +166,6 @@ class PredictResponse(BaseModel):
     features:       dict          # the 10 extracted features
     point_count:    int           # number of points received
     status:         str           # "success" or "error"
-    firebase_saved: bool
 
 
 # =============================================================================
@@ -287,62 +241,16 @@ def predict(request: PredictRequest):
     confidence = round(float(probabilities[prediction]), 4)
     label = "Parkinson's" if prediction == 1 else "Healthy"
 
-    def save_prediction_to_firebase(result: dict):
-        """
-        Saves prediction result to Firebase Firestore.
-        Collection: sessions
-        Document ID: session_id
-        """
-
-        if firebase_db is None:
-            print("⚠️ Firebase is not connected. Skipping save.")
-            return False
-
-        session_id = result.get("session_id")
-
-        if not session_id:
-            print("⚠️ Missing session_id. Cannot save to Firebase.")
-            return False
-
-        session_data = {
-            "sessionId": result.get("session_id"),
-            "patientId": result.get("patient_id"),
-            "therapyType": "physical",
-            "prediction": result.get("prediction"),
-            "label": result.get("label"),
-            "confidence": result.get("confidence"),
-            "features": result.get("features"),
-            "pointCount": result.get("point_count"),
-            "status": result.get("status"),
-            "timestamp": firestore.SERVER_TIMESTAMP,
-        }
-
-        firebase_db.collection("sessions").document(session_id).set(session_data)
-
-        firebase_db.collection("commands").document(session_id).set({
-            "status": "completed",
-            "updatedAt": firestore.SERVER_TIMESTAMP
-        }, merge=True)
-
-        print(f"✅ Prediction saved to Firebase for session: {session_id}")
-        return True
-
-    result = {
-        "patient_id": request.patient_id,
-        "session_id": request.session_id,
-        "prediction": prediction,
-        "label": label,
-        "confidence": confidence,
-        "features": features,
-        "point_count": len(request.points),
-        "status": "success"
-    }
-
-    firebase_saved = save_prediction_to_firebase(result)
-
-    result["firebase_saved"] = firebase_saved
-
-    return result
+    return PredictResponse(
+        patient_id=request.patient_id,
+        session_id=request.session_id,
+        prediction=prediction,
+        label=label,
+        confidence=confidence,
+        features=features,
+        point_count=len(request.points),
+        status="success"
+    )
 
 
 # =============================================================================
